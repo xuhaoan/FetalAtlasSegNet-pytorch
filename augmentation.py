@@ -35,7 +35,8 @@ class RandomFlip:
 
     def __call__(self, img, lbl, atlas_img=None, atlas_lbl=None):
         for axis in self.axes:
-            if np.random.uniform(0, 1) < self.axis_prob:
+            t = np.random.uniform(0, 1)
+            if t < self.axis_prob:
                 # img = img[::-1,:,:]
                 # lbl = lbl[::-1, :, :]
                 # atlas_img = atlas_img[::-1, :, :]
@@ -43,7 +44,7 @@ class RandomFlip:
                 img = np.flip(img, axis)
                 lbl = np.flip(lbl, axis)
                 if atlas_img is not None and atlas_lbl is not None:
-                    if np.random.uniform(0, 1) < self.axis_prob:
+                    if t < self.axis_prob:
                         atlas_img = np.flip(atlas_img, axis)
                         atlas_lbl = np.flip(atlas_lbl, axis)
 
@@ -72,14 +73,16 @@ class RandomRotate:
             # angle = 5
             img = rotate(img, angle, axes=self.axes[n], reshape=False, order=self.order, mode=self.mode)
             lbl = rotate(lbl, angle, axes=self.axes[n], reshape=False, order=self.order, mode=self.mode)
-            lbl[lbl >= 0.5] = 1
-            lbl[lbl < 0.5] = 0
+            # lbl = np.around(lbl, 0).astype('int32')
+            # lbl[lbl >= 0.5] = 1
+            # lbl[lbl < 0.5] = 0
             if atlas_img is not None and atlas_lbl is not None:
                 angle = np.random.uniform(-self.angle_spectrum, self.angle_spectrum)
                 atlas_img = rotate(atlas_img, angle, axes=self.axes[n], reshape=False, order=self.order, mode=self.mode)
                 atlas_lbl = rotate(atlas_lbl, angle, axes=self.axes[n], reshape=False, order=self.order, mode=self.mode)
-                atlas_lbl[atlas_lbl >= 0.5] = 1
-                atlas_lbl[atlas_lbl < 0.5] = 0
+                # atlas_lbl = np.around(atlas_lbl, 0).astype('int32')
+                # atlas_lbl[atlas_lbl >= 0.5] = 1
+                # atlas_lbl[atlas_lbl < 0.5] = 0
 
         return img, lbl, atlas_img, atlas_lbl
 
@@ -90,13 +93,15 @@ def rot_3d(X, Y, atlas_img=None, atlas_lbl=None, max_angle=40):
         theta = np.random.uniform(-max_angle, max_angle)
         X = ndimage.rotate(X, theta, axes=axis[n], reshape=False, mode='reflect')
         Y = ndimage.rotate(Y, theta, axes=axis[n], reshape=False, mode='reflect')
+        # Y = np.around(Y, 0).astype('int32')
         if atlas_img is not None and atlas_lbl is not None:
-            theta = np.random.uniform(-max_angle, max_angle)
+            #theta = np.random.uniform(-max_angle, max_angle)
             atlas_img = ndimage.rotate(atlas_img, theta, axes=axis[n], reshape=False, mode='reflect')
             atlas_lbl = ndimage.rotate(atlas_lbl, theta, axes=axis[n], reshape=False, mode='reflect')
-            atlas_lbl = (atlas_lbl > 0.5).astype(int)
+            # atlas_lbl = np.around(atlas_lbl, 0).astype('int32')
+            # atlas_lbl = (atlas_lbl > 0.5).astype(int)
 
-        return X, (Y > 0.5).astype(int), atlas_img, atlas_lbl
+        return X, Y, atlas_img, atlas_lbl
 
 
 class RandomContrast:
@@ -114,11 +119,11 @@ class RandomContrast:
         if np.random.uniform(0, 1) < self.execution_probability:
             alpha = np.random.uniform(self.alpha[0], self.alpha[1])
             result_img = self.mean + alpha * (img - self.mean)
-            img = np.clip(result_img, -1, 1)
+            img = np.clip(result_img, 0, 1)
             if atlas_img is not None and atlas_lbl is not None:
-                alpha = np.random.uniform(self.alpha[0], self.alpha[1])
+                #alpha = np.random.uniform(self.alpha[0], self.alpha[1])
                 result_atlas = self.mean + alpha * (atlas_img - self.mean)
-                atlas_img = np.clip(result_atlas, -1, 1)
+                atlas_img = np.clip(result_atlas, 0, 1)
 
         return img, lbl, atlas_img, atlas_lbl
 
@@ -127,7 +132,7 @@ class RandomContrast:
 # remember to use spline_order=0 when transforming the labels
 class ElasticDeformation:
     """
-    Apply elastic deformations of 3D patches on a per-voxel mesh. Assumes ZYX axis order (or CZYX if the data is 4D).
+    Apply elastic deformations of 3D patches on a per-voxel mesh. Assumes ZYX axis order (or CZYX if the dataset is 4D).
     Based on: https://github.com/fcalvet/image_tools/blob/master/image_augmentation.py#L62
     """
 
@@ -164,9 +169,9 @@ class ElasticDeformation:
             lbl = map_coordinates(lbl, indices, order=0, mode='reflect')
             if atlas_img is not None and atlas_lbl is not None:
                 # specified parameters for atlas image
-                z_alpha = np.random.uniform(self.alpha[0], self.alpha[1])
-                y_alpha = np.random.uniform(self.alpha[0], self.alpha[1])
-                x_alpha = np.random.uniform(self.alpha[0], self.alpha[1])
+              #  z_alpha = np.random.uniform(self.alpha[0], self.alpha[1])
+              #  y_alpha = np.random.uniform(self.alpha[0], self.alpha[1])
+              #  x_alpha = np.random.uniform(self.alpha[0], self.alpha[1])
                 dz = gaussian_filter(np.random.randn(*volume_shape), self.sigma, mode="reflect") * z_alpha
                 dy = gaussian_filter(np.random.randn(*volume_shape), self.sigma, mode="reflect") * y_alpha
                 dx = gaussian_filter(np.random.randn(*volume_shape), self.sigma, mode="reflect") * x_alpha
